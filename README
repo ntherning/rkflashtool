@@ -34,18 +34,31 @@ sudo ./rkflashtool w 0x10000 0x8000 < recovery.img
 
 All available commands:
 
-rkflashtool b                         reboot device
-rkflashtool r partname >file          read flash partition
-rkflashtool w partname <file          write flash partition
-rkflashtool r offset size >file       read flash
-rkflashtool w offset size <file       write flash
+rkflashtool b [reset_flag]          reboot device
 
-rkflashtool m offset size >file       read 0x80 bytes DRAM
-rkflashtool i offset blocks >file     read IDB flash
-rkflashtool p >file                   fetch parameters
+rkflashtool l <file                 load DDR init (MASK ROM MODE)
+rkflashtool L <file                 load USB loader (MASK ROM MODE)
 
-rkflashtool e partname                erase flash (fill with 0xff)
-rkflashtool e offset size             erase flash (fill with 0xff)
+rkflashtool v                       read chip version
+rkflashtool n                       read NAND flash info
+
+rkflashtool i offset nsectors >outfile  read IDBlocks
+rkflashtool j offset nsectors <infile   write IDBlocks
+
+rkflashtool m offset nbytes   >outfile  read SDRAM
+rkflashtool M offset nbytes   <infile   write SDRAM
+rkflashtool B krnl_addr parm_addr       exec SDRAM
+
+rkflashtool r partname >outfile     read flash partition by name
+rkflashtool w partname <infile      write flash partition by name
+rkflashtool r offset nsectors >outfile  read flash partition
+rkflashtool w offset nsectors <infile   write flash partition
+
+rkflashtool p >file                 fetch parameters
+rkflashtool P <file                 write parameters
+
+rkflashtool e partname              erase flash (fill with 0xff)
+rkflashtool e offset nsectors       erase flash (fill with 0xff)
 
 offset and size are in units (blocks) of 512 bytes (!)
 
