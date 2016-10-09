@@ -1,5 +1,3 @@
-# Simple Makefile for RK Flash Tool
-
 CC	= $(CROSSPREFIX)gcc
 LD	= $(CC)
 CFLAGS	= -O2 -W -Wall
