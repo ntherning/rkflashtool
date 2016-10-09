@@ -251,7 +251,7 @@ static void recv_buf(unsigned int s) {
     libusb_bulk_transfer(h, 1|LIBUSB_ENDPOINT_IN, buf, s, &tmp, 0);
 }
 
-static int parse_partition_name(char *partname) {
+static void parse_partition_name(char *partname) {
     info("working with partition: %s\n", partname);
 
     /* Read parameters */
@@ -269,29 +269,23 @@ static int parse_partition_name(char *partname) {
     /* Search for mtdparts */
     const char *param = (const char *)&buf[8];
     const char *mtdparts = strstr(param, "mtdparts=");
-    if (!mtdparts) {
-        info("Error: 'mtdparts' not found in command line.\n");
-        return 0;
-    }
+    if (!mtdparts)
+        fatal("Error: 'mtdparts' not found in command line.\n");
 
     /* Search for '(partition_name)' */
     char partexp[256];
     snprintf(partexp, 256, "(%s)", partname);
     char *par = strstr(mtdparts, partexp);
-    if (!par) {
-        info("Error: Partition '%s' not found.\n", partname);
-        return 0;
-    }
+    if (!par)
+        fatal("Error: Partition '%s' not found.\n", partname);
 
     /* Cut string by NULL-ing just before (partition_name) */
     par[0] = '\0';
 
     /* Search for '@' sign */
     char *arob = strrchr(mtdparts, '@');
-    if (!arob) {
-        info("Error: Bad syntax in mtdparts.\n");
-        return 0;
-    }
+    if (!arob)
+        fatal("Error: Bad syntax in mtdparts.\n");
 
     offset = strtoul(arob+1, NULL, 0);
     info("found offset: %#010x\n", offset);
@@ -312,7 +306,7 @@ static int parse_partition_name(char *partname) {
         size = nand->flash_size - offset;
 
         info("partition extends up to the end of NAND (size: 0x%08x).\n", size);
-        return 1;
+        return;
     }
 
     /* Search for ',' sign */
@@ -320,7 +314,7 @@ static int parse_partition_name(char *partname) {
     if (comma) {
         size = strtoul(comma+1, NULL, 0);
         info("found size: %#010x\n", size);
-        return 1;
+        return;
     }
 
     /* Search for ':' sign (if first partition) */
@@ -328,12 +322,11 @@ static int parse_partition_name(char *partname) {
     if (colon) {
         size = strtoul(colon+1, NULL, 0);
         info("found size: %#010x\n", size);
-        return 1;
+        return;
     }
 
     /* Error: size not found! */
-    info("Error: Bad syntax for partition size.\n");
-    return 0;
+    fatal("Error: Bad syntax for partition size.\n");
 }
 
 #define NEXT do { argc--;argv++; } while(0)
@@ -470,7 +463,8 @@ int main(int argc, char **argv) {
     usleep(20*1000);
 
     /* Parse partition name */
-    if (partname && !parse_partition_name(partname)) goto exit;
+    if (partname)
+        parse_partition_name(partname);
 
     /* Check and execute command */
 
