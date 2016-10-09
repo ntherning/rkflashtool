@@ -149,6 +149,12 @@ static int tmp, offset = 0, size = 0;
 
 static const char *const strings[2] = { "info", "fatal" };
 
+static void disconnect_and_close_usb(void) {
+    libusb_release_interface(h, 0);
+    libusb_close(h);
+    libusb_exit(c);
+}
+
 static void info_and_fatal(const int s, const int cr, char *f, ...) {
     va_list ap;
     va_start(ap,f);
@@ -713,10 +719,6 @@ int main(int argc, char **argv) {
     }
 
 exit:
-    /* Disconnect and close all interfaces */
-
-    libusb_release_interface(h, 0);
-    libusb_close(h);
-    libusb_exit(c);
+    disconnect_and_close_usb();
     return 0;
 }
