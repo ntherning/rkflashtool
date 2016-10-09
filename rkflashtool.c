@@ -150,9 +150,11 @@ static int tmp, offset = 0, size = 0;
 static const char *const strings[2] = { "info", "fatal" };
 
 static void disconnect_and_close_usb(void) {
-    libusb_release_interface(h, 0);
-    libusb_close(h);
-    libusb_exit(c);
+    if (h) {
+        libusb_release_interface(h, 0);
+        libusb_close(h);
+    }
+    if (c) libusb_exit(c);
 }
 
 static void info_and_fatal(const int s, const int cr, char *f, ...) {
@@ -161,7 +163,10 @@ static void info_and_fatal(const int s, const int cr, char *f, ...) {
     fprintf(stderr, "%srkflashtool: %s: ", cr ? "\r" : "", strings[s]);
     vfprintf(stderr, f, ap);
     va_end(ap);
-    if (s) exit(s);
+    if (s) {
+        disconnect_and_close_usb();
+        exit(s);
+    }
 }
 
 #define info(...)    info_and_fatal(0, 0, __VA_ARGS__)
