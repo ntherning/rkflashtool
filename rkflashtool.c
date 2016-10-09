@@ -254,6 +254,8 @@ static void recv_buf(unsigned int s) {
 /* Parse partition name and set offset and size accordingly */
 
 static void parse_partition_name(char *partname) {
+    char *mtdparts, *found, partexp[256];
+
     info("working with partition: %s\n", partname);
 
     /* Read parameters */
@@ -267,37 +269,23 @@ static void parse_partition_name(char *partname) {
       fatal("invalid size of parameter block\n");
     info("size of parameter block: %i\n", size);
 
-    /* Search for mtdparts */
-    const char *param = (const char *)&buf[8];
-    const char *mtdparts = strstr(param, "mtdparts=");
-    if (!mtdparts)
+    if (!(mtdparts = strstr((const char *)buf+8, "mtdparts=")))
         fatal("'mtdparts' not found in command line\n");
 
-    /* Search for '(partition_name)' */
-    char partexp[256];
-    snprintf(partexp, 256, "(%s)", partname);
-    char *par = strstr(mtdparts, partexp);
-    if (!par)
+    snprintf(partexp, sizeof(partexp), "(%s)", partname);
+    if (!(found = strstr(mtdparts, partexp)))
         fatal("partition '%s' not found\n", partname);
+    *found = 0;     /* cut string before (partition_name) */
 
-    /* Cut string by NULL-ing just before (partition_name) */
-    par[0] = '\0';
-
-    /* Search for '@' sign */
-    char *arob = strrchr(mtdparts, '@');
-    if (!arob)
+    if (!(found = strrchr(mtdparts, '@')))
         fatal("bad syntax in mtdparts\n");
 
-    offset = strtoul(arob+1, NULL, 0);
+    offset = strtoul(found+1, NULL, 0);
     info("found offset: %#010x\n", offset);
 
-    /* Cut string by NULL-ing just before '@' sign */
-    arob[0] = '\0';
+    *found = 0;     /* cut string before @-sign */
 
-    /* Search for '-' sign (if last partition) */
-    char *minus = strrchr(mtdparts, '-');
-        if (minus) {
-
+    if ((found = strrchr(mtdparts, '-'))) {
         /* Read size from NAND info */
         send_cmd(RKFT_CMD_READFLASHINFO, 0, 0);
         recv_buf(512);
@@ -306,28 +294,24 @@ static void parse_partition_name(char *partname) {
         nand_info *nand = (nand_info *) buf;
         size = nand->flash_size - offset;
 
-        info("partition extends up to the end of NAND (size: 0x%08x)\n", size);
-        return;
+        info("partition extends up to the end of NAND\n");
+        goto found_size;
     }
 
-    /* Search for ',' sign */
-    char *comma = strrchr(mtdparts, ',');
-    if (comma) {
-        size = strtoul(comma+1, NULL, 0);
-        info("found size: %#010x\n", size);
-        return;
+    if ((found = strrchr(mtdparts, ','))) {
+        size = strtoul(found+1, NULL, 0);
+        goto found_size;
     }
 
-    /* Search for ':' sign (if first partition) */
-    char *colon = strrchr(mtdparts, ':');
-    if (colon) {
-        size = strtoul(colon+1, NULL, 0);
-        info("found size: %#010x\n", size);
-        return;
+    if ((found = strrchr(mtdparts, ':'))) {
+        size = strtoul(found+1, NULL, 0);
+        goto found_size;
     }
 
-    /* Error: size not found! */
-    fatal("Error: Bad syntax for partition size.\n");
+    fatal("bad syntax for partition size.\n");
+
+found_size:
+    info("found size: %#010x\n", size);
 }
 
 #define NEXT do { argc--;argv++; } while(0)
