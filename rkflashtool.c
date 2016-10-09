@@ -1,8 +1,8 @@
 /* rkflashtool - for RockChip based devices.
- *               (RK2808, RK2818, RK2918, RK2928, RK3066, RK3068, RK3126 and RK3188)
  *
- * Copyright (C) 2010-2014 by Ivo van Poorten, Fukaumi Naoki, Guenter Knauf,
- *                            Ulrich Prinz, Steve Wilson
+ * Copyright (C) 2010-2016 by Ivo van Poorten, Fukaumi Naoki, Guenter Knauf,
+ *                            Ulrich Prinz, Steve Wilson, Sjoerd Simons,
+ *                            Julien Chauveau
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
