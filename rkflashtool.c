@@ -262,9 +262,7 @@ static void parse_partition_name(char *partname) {
     recv_buf(RKFT_BLOCKSIZE);
     recv_res();
 
-    /* Check parameter length */
-    uint32_t *p = (uint32_t*)buf+1;
-    size = *p;
+    size = GET32LE(buf+4);
     if (size < 0 || size > MAX_PARAM_LENGTH)
       fatal("Bad parameter length!\n");
 
