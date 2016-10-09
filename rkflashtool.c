@@ -188,7 +188,7 @@ static void usage(void) {
 }
 
 static void send_exec(uint32_t krnl_addr, uint32_t parm_addr) {
-    long int r = random();
+    long int r = rand();
 
     memset(cmd, 0 , 31);
     memcpy(cmd, "USBC", 4);
@@ -202,7 +202,7 @@ static void send_exec(uint32_t krnl_addr, uint32_t parm_addr) {
 }
 
 static void send_reset(uint8_t flag) {
-    long int r = random();
+    long int r = rand();
 
     memset(cmd, 0 , 31);
     memcpy(cmd, "USBC", 4);
