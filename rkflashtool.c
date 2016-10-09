@@ -251,6 +251,8 @@ static void recv_buf(unsigned int s) {
     libusb_bulk_transfer(h, 1|LIBUSB_ENDPOINT_IN, buf, s, &tmp, 0);
 }
 
+/* Parse partition name and set offset and size accordingly */
+
 static void parse_partition_name(char *partname) {
     info("working with partition: %s\n", partname);
 
@@ -462,7 +464,6 @@ int main(int argc, char **argv) {
     recv_res();
     usleep(20*1000);
 
-    /* Parse partition name */
     if (partname)
         parse_partition_name(partname);
 
