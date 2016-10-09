@@ -145,7 +145,7 @@ static uint8_t cmd[31], res[13], buf[RKFT_BLOCKSIZE];
 static uint8_t ibuf[RKFT_IDB_BLOCKSIZE];
 static libusb_context *c;
 static libusb_device_handle *h = NULL;
-static int tmp;
+static int tmp, offset = 0, size = 0;
 
 static const char *const strings[2] = { "info", "fatal" };
 
@@ -240,13 +240,97 @@ static void recv_buf(unsigned int s) {
     libusb_bulk_transfer(h, 1|LIBUSB_ENDPOINT_IN, buf, s, &tmp, 0);
 }
 
+static int parse_partition_name(char *partname) {
+    info("working with partition: %s\n", partname);
+
+    /* Read parameters */
+    offset = 0;
+    send_cmd(RKFT_CMD_READLBA, offset, RKFT_OFF_INCR);
+    recv_buf(RKFT_BLOCKSIZE);
+    recv_res();
+
+    /* Check parameter length */
+    uint32_t *p = (uint32_t*)buf+1;
+    size = *p;
+    if (size < 0 || size > MAX_PARAM_LENGTH)
+      fatal("Bad parameter length!\n");
+
+    /* Search for mtdparts */
+    const char *param = (const char *)&buf[8];
+    const char *mtdparts = strstr(param, "mtdparts=");
+    if (!mtdparts) {
+        info("Error: 'mtdparts' not found in command line.\n");
+        return 0;
+    }
+
+    /* Search for '(partition_name)' */
+    char partexp[256];
+    snprintf(partexp, 256, "(%s)", partname);
+    char *par = strstr(mtdparts, partexp);
+    if (!par) {
+        info("Error: Partition '%s' not found.\n", partname);
+        return 0;
+    }
+
+    /* Cut string by NULL-ing just before (partition_name) */
+    par[0] = '\0';
+
+    /* Search for '@' sign */
+    char *arob = strrchr(mtdparts, '@');
+    if (!arob) {
+        info("Error: Bad syntax in mtdparts.\n");
+        return 0;
+    }
+
+    offset = strtoul(arob+1, NULL, 0);
+    info("found offset: %#010x\n", offset);
+
+    /* Cut string by NULL-ing just before '@' sign */
+    arob[0] = '\0';
+
+    /* Search for '-' sign (if last partition) */
+    char *minus = strrchr(mtdparts, '-');
+        if (minus) {
+
+        /* Read size from NAND info */
+        send_cmd(RKFT_CMD_READFLASHINFO, 0, 0);
+        recv_buf(512);
+        recv_res();
+
+        nand_info *nand = (nand_info *) buf;
+        size = nand->flash_size - offset;
+
+        info("partition extends up to the end of NAND (size: 0x%08x).\n", size);
+        return 1;
+    }
+
+    /* Search for ',' sign */
+    char *comma = strrchr(mtdparts, ',');
+    if (comma) {
+        size = strtoul(comma+1, NULL, 0);
+        info("found size: %#010x\n", size);
+        return 1;
+    }
+
+    /* Search for ':' sign (if first partition) */
+    char *colon = strrchr(mtdparts, ':');
+    if (colon) {
+        size = strtoul(colon+1, NULL, 0);
+        info("found size: %#010x\n", size);
+        return 1;
+    }
+
+    /* Error: size not found! */
+    info("Error: Bad syntax for partition size.\n");
+    return 0;
+}
+
 #define NEXT do { argc--;argv++; } while(0)
 
 int main(int argc, char **argv) {
     struct libusb_device_descriptor desc;
     const struct t_pid *ppid = pidtab;
     ssize_t nr;
-    int offset = 0, size = 0;
     uint16_t crc16;
     uint8_t flag = 0;
     char action;
@@ -375,92 +459,8 @@ int main(int argc, char **argv) {
     usleep(20*1000);
 
     /* Parse partition name */
-    if (partname) {
-        info("working with partition: %s\n", partname);
+    if (partname && !parse_partition_name(partname)) goto exit;
 
-        /* Read parameters */
-        offset = 0;
-        send_cmd(RKFT_CMD_READLBA, offset, RKFT_OFF_INCR);
-        recv_buf(RKFT_BLOCKSIZE);
-        recv_res();
-
-        /* Check parameter length */
-        uint32_t *p = (uint32_t*)buf+1;
-        size = *p;
-        if (size < 0 || size > MAX_PARAM_LENGTH)
-          fatal("Bad parameter length!\n");
-
-        /* Search for mtdparts */
-        const char *param = (const char *)&buf[8];
-        const char *mtdparts = strstr(param, "mtdparts=");
-        if (!mtdparts) {
-            info("Error: 'mtdparts' not found in command line.\n");
-            goto exit;
-        }
-
-        /* Search for '(partition_name)' */
-        char partexp[256];
-        snprintf(partexp, 256, "(%s)", partname);
-        char *par = strstr(mtdparts, partexp);
-        if (!par) {
-            info("Error: Partition '%s' not found.\n", partname);
-            goto exit;
-        }
-
-        /* Cut string by NULL-ing just before (partition_name) */
-        par[0] = '\0';
-
-        /* Search for '@' sign */
-        char *arob = strrchr(mtdparts, '@');
-        if (!arob) {
-            info("Error: Bad syntax in mtdparts.\n");
-            goto exit;
-        }
-
-        offset = strtoul(arob+1, NULL, 0);
-        info("found offset: %#010x\n", offset);
-
-        /* Cut string by NULL-ing just before '@' sign */
-        arob[0] = '\0';
-
-        /* Search for '-' sign (if last partition) */
-        char *minus = strrchr(mtdparts, '-');
-        if (minus) {
-
-            /* Read size from NAND info */
-            send_cmd(RKFT_CMD_READFLASHINFO, 0, 0);
-            recv_buf(512);
-            recv_res();
-
-            nand_info *nand = (nand_info *) buf;
-            size = nand->flash_size - offset;
-
-            info("partition extends up to the end of NAND (size: 0x%08x).\n", size);
-            goto action;
-        }
-
-        /* Search for ',' sign */
-        char *comma = strrchr(mtdparts, ',');
-        if (comma) {
-            size = strtoul(comma+1, NULL, 0);
-            info("found size: %#010x\n", size);
-            goto action;
-        }
-
-        /* Search for ':' sign (if first partition) */
-        char *colon = strrchr(mtdparts, ':');
-        if (colon) {
-            size = strtoul(colon+1, NULL, 0);
-            info("found size: %#010x\n", size);
-            goto action;
-        }
-
-        /* Error: size not found! */
-        info("Error: Bad syntax for partition size.\n");
-        goto exit;
-    }
-
-action:
     /* Check and execute command */
 
     switch(action) {
