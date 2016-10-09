@@ -121,7 +121,7 @@ static void info_and_fatal(const int s, const int cr, char *f, ...) {
 
 static void usage(void) {
     fatal("usage:\n"
-          "\trkflashtool b [flag]            \treboot device\n\n"
+          "\trkflashtool b [reset_flag]      \treboot device\n\n"
           "\trkflashtool l <file             \tload DDR init (MASK ROM MODE)\n"
           "\trkflashtool L <file             \tload USB loader (MASK ROM MODE)\n\n"
           "\trkflashtool v                   \tread chip version\n"
