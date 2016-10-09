@@ -65,7 +65,7 @@ usage: rkparameters model fw_version partitionsfile > outfile
 
     model is found in the large case statement, e.g. arnova7g2
     you can add your own and please send the information back to me
-    (ivop@euronet.nl) for inclusion in future versions.
+    (ivopvp@gmail.com) for inclusion in future versions.
 
     fw_version is the version number, e.g. 1.2.3
 
