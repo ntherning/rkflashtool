@@ -140,7 +140,7 @@ static void usage(void) {
 }
 
 static void send_cmd(uint32_t command, uint32_t offset, uint16_t nsectors) {
-    long int r = random();
+    long int r = rand();
 
     memset(cmd, 0 , 31);
     memcpy(cmd, "USBC", 4);
