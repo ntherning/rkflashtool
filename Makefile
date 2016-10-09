@@ -3,13 +3,22 @@
 CC	= $(CROSSPREFIX)gcc
 LD	= $(CC)
 CFLAGS	= -O2 -W -Wall
-LDFLAGS	= -s
-LIBS	= -lusb-1.0
+LDFLAGS	=
+PREFIX ?= usr/local
 
-ifdef LIBUSB
+PKGCONFIG ?= $(shell pkg-config --exists libusb-1.0 && echo 1)
+
+ifeq ($(PKGCONFIG),1)
+CFLAGS += $(shell pkg-config --cflags libusb-1.0)
+LDFLAGS += $(shell pkg-config --libs libusb-1.0)
+else ifdef LIBUSB
 CFLAGS	+= -I$(LIBUSB)/include
 LDFLAGS	+= -L$(LIBUSB)/lib
+else
+CFLAGS	+= -I/usr/include/libusb-1.0
+LDFLAGS += -lusb-1.0
 endif
+
 
 MACH	= $(shell $(CC) -dumpmachine)
 ifeq ($(findstring mingw,$(MACH)),mingw)
@@ -17,6 +26,7 @@ LDFLAGS	+= -static
 USE_RES	= 1
 endif
 ifeq ($(findstring cygwin,$(MACH)),cygwin)
+LDFLAGS	+= -s
 USE_RES	= 1
 endif
 
@@ -38,15 +48,23 @@ endif
 endif
 
 PROGS	= $(patsubst %.c,%$(BINEXT), $(wildcard *.c))
+SCRIPTS = rkunsign rkparametersblock rkmisc rkpad rkparameters
 
-
-all: $(PROGS)
+all: $(PROGS) $(SCRIPTS)
 
 %$(BINEXT): %.c $(RESFILE)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+install: $(PROGS) $(SCRIPTS)
+	install -d -m 0755 $(DESTDIR)/$(PREFIX)/bin
+	install -m 0755 $(PROGS) $(DESTDIR)/$(PREFIX)/bin
+	install -m 0755 $(SCRIPTS) $(DESTDIR)/$(PREFIX)/bin
 
 clean:
 	$(RM) $(PROGS) *.res *.rc *.zip *.tar.gz *.tar.bz2 *.tar.xz *~ *.exe
+
+uninstall:
+	cd $(DESTDIR)/$(PREFIX)/bin && $(RM) -f $(PROGS) $(SCRIPTS)
 
 %.res: %.rc
 	$(RC) $(RCFLAGS) $< -o $@
