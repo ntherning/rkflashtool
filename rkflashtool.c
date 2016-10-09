@@ -264,20 +264,21 @@ static void parse_partition_name(char *partname) {
 
     size = GET32LE(buf+4);
     if (size < 0 || size > MAX_PARAM_LENGTH)
-      fatal("Bad parameter length!\n");
+      fatal("invalid size of parameter block\n");
+    info("size of parameter block: %i\n", size);
 
     /* Search for mtdparts */
     const char *param = (const char *)&buf[8];
     const char *mtdparts = strstr(param, "mtdparts=");
     if (!mtdparts)
-        fatal("Error: 'mtdparts' not found in command line.\n");
+        fatal("'mtdparts' not found in command line\n");
 
     /* Search for '(partition_name)' */
     char partexp[256];
     snprintf(partexp, 256, "(%s)", partname);
     char *par = strstr(mtdparts, partexp);
     if (!par)
-        fatal("Error: Partition '%s' not found.\n", partname);
+        fatal("partition '%s' not found\n", partname);
 
     /* Cut string by NULL-ing just before (partition_name) */
     par[0] = '\0';
@@ -285,7 +286,7 @@ static void parse_partition_name(char *partname) {
     /* Search for '@' sign */
     char *arob = strrchr(mtdparts, '@');
     if (!arob)
-        fatal("Error: Bad syntax in mtdparts.\n");
+        fatal("bad syntax in mtdparts\n");
 
     offset = strtoul(arob+1, NULL, 0);
     info("found offset: %#010x\n", offset);
@@ -305,7 +306,7 @@ static void parse_partition_name(char *partname) {
         nand_info *nand = (nand_info *) buf;
         size = nand->flash_size - offset;
 
-        info("partition extends up to the end of NAND (size: 0x%08x).\n", size);
+        info("partition extends up to the end of NAND (size: 0x%08x)\n", size);
         return;
     }
 
