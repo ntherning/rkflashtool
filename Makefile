@@ -1,6 +1,6 @@
 CC	= $(CROSSPREFIX)gcc
 LD	= $(CC)
-CFLAGS	= -O2 -W -Wall
+CFLAGS	= -O2 -W -Wall -Wextra -Wpedantic -std=c99 -D_XOPEN_SOURCE=500
 LDFLAGS	=
 PREFIX ?= usr/local
 
