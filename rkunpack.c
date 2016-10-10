@@ -50,6 +50,10 @@ HANDLE fm;
 #define O_BINARY 0
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 static uint8_t *buf;
 static off_t size;
 static unsigned int fsize, ioff, isize, noff;
@@ -82,7 +86,7 @@ static void write_file(const char *path, uint8_t *buffer, unsigned int length) {
 static void unpack_rkaf(void) {
     uint8_t *p;
     const char *name, *path, *sep;
-    char dir[PATH_MAX];
+    char dir[PATH_MAX+1];
     int count;
 
     info("RKAF signature detected\n");
