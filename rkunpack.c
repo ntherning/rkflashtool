@@ -190,8 +190,7 @@ int main(int argc, char *argv[]) {
     buf = MapViewOfFile(fm, FILE_MAP_READ, 0, 0, 0);
     if (!buf) fatal("%s: cannot create MapView of File\n", argv[1]);
 #else
-    if ((buf = mmap(NULL, size, PROT_READ, MAP_SHARED | MAP_FILE, fd, 0))
-                                                        == MAP_FAILED)
+    if ((buf = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED)
         fatal("%s: %s\n", argv[1], strerror(errno));
 #endif
 
