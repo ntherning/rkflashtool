@@ -33,6 +33,7 @@
 #include <string.h>
 #include <errno.h>
 #include <libusb.h>
+#include <time.h>
 
 /* hack to set binary mode for stdin / stdout on Windows */
 #ifdef _WIN32
@@ -93,6 +94,8 @@ static uint8_t ibuf[RKFT_IDB_BLOCKSIZE];
 static libusb_context *c;
 static libusb_device_handle *h = NULL;
 static int tmp, offset = 0, size = 0;
+
+static struct timespec ts;
 
 static const char *const strings[2] = { "info", "fatal" };
 
@@ -392,7 +395,8 @@ int main(int argc, char **argv) {
 
     send_cmd(RKFT_CMD_TESTUNITREADY, 0, 0);
     recv_res();
-    usleep(20*1000);
+    ts.tv_nsec = 20*1000*1000;
+    while (nanosleep(&ts, &ts)) ;
 
     if (partname)
         parse_partition_name(partname);
