@@ -9,11 +9,11 @@ For cross-compilation for win32/64 you need to install libusb-1.0.
 See at the end of this document for more information.
 After that, you can run:
 
-    $ make MACH=mingw CROSSPREFIX=i686-w64-mingw32-
+    $ make CROSSPREFIX=i686-w64-mingw32-
 
     or
 
-    $ make MACH=mingw CROSSPREFIX=x86_64-w64-mingw32-
+    $ make CROSSPREFIX=x86_64-w64-mingw32-
 
 
 USAGE
