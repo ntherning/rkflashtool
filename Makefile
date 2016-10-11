@@ -1,6 +1,6 @@
 CC	= $(CROSSPREFIX)gcc
 LD	= $(CC)
-CFLAGS	= -O2 -W -Wall -Wextra -Wpedantic -std=c99 -D_XOPEN_SOURCE=500
+CFLAGS	= -O2 -W -Wall -Wextra -Wpedantic -std=c99 -D_XOPEN_SOURCE=600
 LDFLAGS	=
 PREFIX ?= usr/local
 
@@ -20,7 +20,7 @@ endif
 
 MACH	= $(shell $(CC) -dumpmachine)
 ifeq ($(findstring mingw,$(MACH)),mingw)
-LDFLAGS	+= -static
+LDFLAGS	+= -static -lpthread
 USE_RES	= 1
 endif
 ifeq ($(findstring cygwin,$(MACH)),cygwin)
