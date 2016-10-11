@@ -45,3 +45,20 @@ zip -9r $NAME-win64-bin.zip rkflashtool.exe rkcrc.exe rkunpack.exe $SCRIPTS \
     examples
 
 rm -f rkflashtool.exe rkcrc.exe rkunpack.exe
+
+echo trying macosx cross-builds...
+
+rm -f rkflashtool rkcrc rkunpack
+make CROSSPREFIX=i686-apple-darwin10- || exit 1
+
+zip -9r $NAME-macosx-intel-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
+    examples
+
+rm -f rkflashtool rkcrc rkunpack
+make CROSSPREFIX=powerpc-apple-darwin10- || exit 1
+
+zip -9r $NAME-macosx-powerpc-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
+    examples
+
+rm -f rkflashtool rkcrc rkunpack
+
