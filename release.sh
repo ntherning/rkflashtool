@@ -51,14 +51,18 @@ echo trying macosx cross-builds...
 rm -f rkflashtool rkcrc rkunpack
 make CROSSPREFIX=i686-apple-darwin10- || exit 1
 
+cp -a /usr/i686-apple-darwin10/lib/libusb-1.0.0.dylib .
 zip -9r $NAME-macosx-intel-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
     examples
+rm -f libusb-1.0.0.dylib
 
 rm -f rkflashtool rkcrc rkunpack
 make CROSSPREFIX=powerpc-apple-darwin10- || exit 1
 
+cp -a /usr/powerpc-apple-darwin10/lib/libusb-1.0.0.dylib .
 zip -9r $NAME-macosx-powerpc-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
-    examples
+    examples libusb-1.0.0.dylib
+rm -f libusb-1.0.0.dylib
 
 rm -f rkflashtool rkcrc rkunpack
 
