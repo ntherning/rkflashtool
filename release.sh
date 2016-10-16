@@ -53,7 +53,7 @@ make CROSSPREFIX=i686-apple-darwin10- || exit 1
 
 cp -a /usr/i686-apple-darwin10/lib/libusb-1.0.0.dylib .
 zip -9r $NAME-macosx-intel-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
-    examples
+    examples libusb-1.0.0.dylib
 rm -f libusb-1.0.0.dylib
 
 rm -f rkflashtool rkcrc rkunpack
