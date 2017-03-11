@@ -14,6 +14,7 @@ mkdir $DIR
 cp -a \
     Makefile \
     rkflashtool.c \
+    rkflashtool.h \
     rkcrc.c \
     rkcrc.h \
     rkunpack.c \
@@ -56,13 +57,13 @@ zip -9r $NAME-macosx-intel-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
     examples libusb-1.0.0.dylib
 rm -f libusb-1.0.0.dylib
 
-rm -f rkflashtool rkcrc rkunpack
-make CROSSPREFIX=powerpc-apple-darwin10- || exit 1
+#rm -f rkflashtool rkcrc rkunpack
+#make CROSSPREFIX=powerpc-apple-darwin10- || exit 1
 
-cp -a /usr/powerpc-apple-darwin10/lib/libusb-1.0.0.dylib .
-zip -9r $NAME-macosx-powerpc-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
-    examples libusb-1.0.0.dylib
-rm -f libusb-1.0.0.dylib
+#cp -a /usr/powerpc-apple-darwin10/lib/libusb-1.0.0.dylib .
+#zip -9r $NAME-macosx-powerpc-bin.zip rkflashtool rkcrc rkunpack $SCRIPTS \
+#    examples libusb-1.0.0.dylib
+#rm -f libusb-1.0.0.dylib
 
 rm -f rkflashtool rkcrc rkunpack
 
