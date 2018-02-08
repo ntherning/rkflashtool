@@ -1,8 +1,8 @@
 /* rkflashtool - for RockChip based devices.
  *
- * Copyright (C) 2010-2016 by Ivo van Poorten, Fukaumi Naoki, Guenter Knauf,
+ * Copyright (C) 2010-2018 by Ivo van Poorten, Fukaumi Naoki, Guenter Knauf,
  *                            Ulrich Prinz, Steve Wilson, Sjoerd Simons,
- *                            Julien Chauveau
+ *                            Julien Chauveau, Ramon Steppat
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,23 +48,25 @@ int _CRT_fmode = _O_BINARY;
 static const struct t_pid {
     const uint16_t pid;
     const char name[8];
+    const uint8_t supportFlashId;
 } pidtab[] = {
-    { 0x281a, "RK2818" },
-    { 0x290a, "RK2918" },
-    { 0x292a, "RK2928" },
-    { 0x292c, "RK3026" },
-    { 0x300a, "RK3066" },
-    { 0x300b, "RK3168" },
-    { 0x301a, "RK3036" },
-    { 0x310a, "RK3066B" },
-    { 0x310b, "RK3188" },
-    { 0x310c, "RK312X" }, // Both RK3126 and RK3128
-    { 0x310d, "RK3126" },
-    { 0x320a, "RK3288" },
-    { 0x320b, "RK322X" }, // Both RK3228 and RK3229
-    { 0x330a, "RK3368" },
-    { 0x330c, "RK3399" },
-    { 0, "" },
+    { 0x262c, "RKNANOC", 0},
+    { 0x281a, "RK2818", 1 },
+    { 0x290a, "RK2918", 1 },
+    { 0x292a, "RK2928", 1 },
+    { 0x292c, "RK3026", 1 },
+    { 0x300a, "RK3066", 1 },
+    { 0x300b, "RK3168", 1 },
+    { 0x301a, "RK3036", 1 },
+    { 0x310a, "RK3066B", 1 },
+    { 0x310b, "RK3188", 1 },
+    { 0x310c, "RK312X", 1 }, // Both RK3126 and RK3128
+    { 0x310d, "RK3126", 1 },
+    { 0x320a, "RK3288", 1 },
+    { 0x320b, "RK322X", 1 }, // Both RK3228 and RK3229
+    { 0x330a, "RK3368", 1 },
+    { 0x330c, "RK3399", 1 },
+    { 0, "" , 0},
 };
 
 typedef struct {
@@ -93,11 +95,22 @@ static uint8_t cmd[31], res[13], buf[RKFT_BLOCKSIZE];
 static uint8_t ibuf[RKFT_IDB_BLOCKSIZE];
 static libusb_context *c;
 static libusb_device_handle *h = NULL;
-static int tmp, offset = 0, size = 0;
+static int tmp, numEndpoints, offset = 0, size = 0;
 
 static struct timespec ts;
 
 static const char *const strings[2] = { "info", "fatal" };
+
+uint8_t min(uint8_t a, uint8_t b) {
+    if(a < b) {
+        return a;
+    }
+    return b;
+}
+
+uint8_t getSendEndpointId() {
+    return min(2, numEndpoints-1);
+}
 
 static void disconnect_and_close_usb(void) {
     if (h) {
@@ -159,7 +172,7 @@ static void send_exec(uint32_t krnl_addr, uint32_t parm_addr) {
     if (parm_addr)  SETBE32(cmd+22, parm_addr);
                     SETBE32(cmd+12, RKFT_CMD_EXECUTESDRAM);
 
-    libusb_bulk_transfer(h, 2|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
+    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
 }
 
 static void send_reset(uint8_t flag) {
@@ -172,7 +185,7 @@ static void send_reset(uint8_t flag) {
     SETBE32(cmd+12, RKFT_CMD_RESETDEVICE);
     cmd[16] = flag;
 
-    libusb_bulk_transfer(h, 2|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
+    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
 }
 
 static void send_cmd(uint32_t command, uint32_t offset, uint16_t nsectors) {
@@ -186,11 +199,12 @@ static void send_cmd(uint32_t command, uint32_t offset, uint16_t nsectors) {
     if (nsectors)   SETBE16(cmd+22, nsectors);
     if (command)    SETBE32(cmd+12, command);
 
-    libusb_bulk_transfer(h, 2|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
+    //fix for RKNANOC
+    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
 }
 
 static void send_buf(unsigned int s) {
-    libusb_bulk_transfer(h, 2|LIBUSB_ENDPOINT_OUT, buf, s, &tmp, 0);
+    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, buf, s, &tmp, 0);
 }
 
 static void recv_res(void) {
@@ -268,6 +282,7 @@ found_size:
 
 int main(int argc, char **argv) {
     struct libusb_device_descriptor desc;
+    struct libusb_config_descriptor *config;
     const struct t_pid *ppid = pidtab;
     ssize_t nr;
     uint16_t crc16;
@@ -343,7 +358,7 @@ int main(int argc, char **argv) {
     if (!h) fatal("cannot open device\n");
 
     /* Connect to device */
-
+    
     if (libusb_kernel_driver_active(h, 0) == 1) {
         info("kernel driver active\n");
         if (!libusb_detach_kernel_driver(h, 0))
@@ -356,6 +371,12 @@ int main(int argc, char **argv) {
 
     if (libusb_get_device_descriptor(libusb_get_device(h), &desc) != 0)
         fatal("cannot get device descriptor\n");
+
+    if (libusb_get_config_descriptor(libusb_get_device(h), 0, &config) != 0)
+        fatal("cannot get config descriptor\n");
+
+    numEndpoints = (int)config->interface[0].altsetting[0].bNumEndpoints;
+    info("number of endpoints: %d\n", numEndpoints);
 
     if (desc.bcdUSB == 0x200)
         info("MASK ROM MODE\n");
@@ -608,12 +629,14 @@ int main(int argc, char **argv) {
         break;
     case 'n':   /* Read NAND Flash Info */
     {
-        send_cmd(RKFT_CMD_READFLASHID, 0, 0);
-        recv_buf(5);
-        recv_res();
+        if(ppid->supportFlashId) {
+            send_cmd(RKFT_CMD_READFLASHID, 0, 0);
+            recv_buf(5);
+            recv_res();
 
-        info("Flash ID: %02x %02x %02x %02x %02x\n",
+            info("Flash ID: %02x %02x %02x %02x %02x\n",
             buf[0], buf[1], buf[2], buf[3], buf[4]);
+        }
 
         send_cmd(RKFT_CMD_READFLASHINFO, 0, 0);
         recv_buf(512);
