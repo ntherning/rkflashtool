@@ -48,25 +48,25 @@ int _CRT_fmode = _O_BINARY;
 static const struct t_pid {
     const uint16_t pid;
     const char name[8];
-    const uint8_t supportFlashId;
 } pidtab[] = {
-    { 0x262c, "RKNANOC", 0},
-    { 0x281a, "RK2818", 1 },
-    { 0x290a, "RK2918", 1 },
-    { 0x292a, "RK2928", 1 },
-    { 0x292c, "RK3026", 1 },
-    { 0x300a, "RK3066", 1 },
-    { 0x300b, "RK3168", 1 },
-    { 0x301a, "RK3036", 1 },
-    { 0x310a, "RK3066B", 1 },
-    { 0x310b, "RK3188", 1 },
-    { 0x310c, "RK312X", 1 }, // Both RK3126 and RK3128
-    { 0x310d, "RK3126", 1 },
-    { 0x320a, "RK3288", 1 },
-    { 0x320b, "RK322X", 1 }, // Both RK3228 and RK3229
-    { 0x330a, "RK3368", 1 },
-    { 0x330c, "RK3399", 1 },
-    { 0, "" , 0},
+    { 0x262c, "RKNANOC"},
+    { 0x281a, "RK2818"},
+    { 0x290a, "RK2918"},
+    { 0x292a, "RK2928"},
+    { 0x292c, "RK3026"},
+    { 0x300a, "RK3066"},
+    { 0x300b, "RK3168"},
+    { 0x301a, "RK3036"},
+    { 0x310a, "RK3066B"},
+    { 0x310b, "RK3188"},
+    { 0x310c, "RK312X"}, // Both RK3126 and RK3128
+    { 0x310d, "RK3126"},
+    { 0x320a, "RK3288"},
+    { 0x320b, "RK322X"}, // Both RK3228 and RK3229
+    { 0x320c, "RK3328"},
+    { 0x330a, "RK3368"},
+    { 0x330c, "RK3399"},
+    { 0, ""},
 };
 
 typedef struct {
@@ -366,10 +366,17 @@ int main(int argc, char **argv) {
         fatal("cannot get config descriptor\n");
 
     uint8_t num_endpoints = (uint8_t)config->interface[0].altsetting[0].bNumEndpoints;
-    info("number of endpoints: %d\n", num_endpoints);
 
-    if(num_endpoints == 2) {
-        send_endpoint_id = 1;
+    /* Search for the outgoing endpoint id */
+
+    for(uint8_t i = 0; i < num_endpoints; i++) {
+        const struct libusb_endpoint_descriptor *epdesc = &config->interface[0].altsetting[0].endpoint[i];
+
+        if((epdesc->bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) != LIBUSB_TRANSFER_TYPE_CONTROL) {
+            if((epdesc->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_OUT) {
+                send_endpoint_id = epdesc->bEndpointAddress & LIBUSB_ENDPOINT_ADDRESS_MASK;
+            }
+        }
     }
 
     if (desc.bcdUSB == 0x200)
@@ -623,7 +630,7 @@ int main(int argc, char **argv) {
         break;
     case 'n':   /* Read NAND Flash Info */
     {
-        if(ppid->supportFlashId) {
+        if(ppid->pid != 0x262c) {
             send_cmd(RKFT_CMD_READFLASHID, 0, 0);
             recv_buf(5);
             recv_res();
