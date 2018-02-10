@@ -95,22 +95,11 @@ static uint8_t cmd[31], res[13], buf[RKFT_BLOCKSIZE];
 static uint8_t ibuf[RKFT_IDB_BLOCKSIZE];
 static libusb_context *c;
 static libusb_device_handle *h = NULL;
-static int tmp, numEndpoints, offset = 0, size = 0;
+static int tmp, send_endpoint_id = 2, offset = 0, size = 0;
 
 static struct timespec ts;
 
 static const char *const strings[2] = { "info", "fatal" };
-
-uint8_t min(uint8_t a, uint8_t b) {
-    if(a < b) {
-        return a;
-    }
-    return b;
-}
-
-uint8_t getSendEndpointId() {
-    return min(2, numEndpoints-1);
-}
 
 static void disconnect_and_close_usb(void) {
     if (h) {
@@ -172,7 +161,7 @@ static void send_exec(uint32_t krnl_addr, uint32_t parm_addr) {
     if (parm_addr)  SETBE32(cmd+22, parm_addr);
                     SETBE32(cmd+12, RKFT_CMD_EXECUTESDRAM);
 
-    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
+    libusb_bulk_transfer(h, send_endpoint_id|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
 }
 
 static void send_reset(uint8_t flag) {
@@ -185,7 +174,7 @@ static void send_reset(uint8_t flag) {
     SETBE32(cmd+12, RKFT_CMD_RESETDEVICE);
     cmd[16] = flag;
 
-    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
+    libusb_bulk_transfer(h, send_endpoint_id|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
 }
 
 static void send_cmd(uint32_t command, uint32_t offset, uint16_t nsectors) {
@@ -199,12 +188,11 @@ static void send_cmd(uint32_t command, uint32_t offset, uint16_t nsectors) {
     if (nsectors)   SETBE16(cmd+22, nsectors);
     if (command)    SETBE32(cmd+12, command);
 
-    //fix for RKNANOC
-    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
+    libusb_bulk_transfer(h, send_endpoint_id|LIBUSB_ENDPOINT_OUT, cmd, sizeof(cmd), &tmp, 0);
 }
 
 static void send_buf(unsigned int s) {
-    libusb_bulk_transfer(h, getSendEndpointId()|LIBUSB_ENDPOINT_OUT, buf, s, &tmp, 0);
+    libusb_bulk_transfer(h, send_endpoint_id|LIBUSB_ENDPOINT_OUT, buf, s, &tmp, 0);
 }
 
 static void recv_res(void) {
@@ -372,11 +360,17 @@ int main(int argc, char **argv) {
     if (libusb_get_device_descriptor(libusb_get_device(h), &desc) != 0)
         fatal("cannot get device descriptor\n");
 
+    /* Get number of endpoints, to calculate the endpoint id for sending commands */
+
     if (libusb_get_config_descriptor(libusb_get_device(h), 0, &config) != 0)
         fatal("cannot get config descriptor\n");
 
-    numEndpoints = (int)config->interface[0].altsetting[0].bNumEndpoints;
-    info("number of endpoints: %d\n", numEndpoints);
+    uint8_t num_endpoints = (uint8_t)config->interface[0].altsetting[0].bNumEndpoints;
+    info("number of endpoints: %d\n", num_endpoints);
+
+    if(num_endpoints == 2) {
+        send_endpoint_id = 1;
+    }
 
     if (desc.bcdUSB == 0x200)
         info("MASK ROM MODE\n");
