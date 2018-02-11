@@ -657,7 +657,7 @@ int main(int argc, char **argv) {
              "\tFlash CS:%s%s%s%s\n",
 
              /* Manufacturer */
-             id < MAX_NAND_ID ? manufacturer[id] : "Unknown",
+             id < MAX_NAND_ID ? manufacturer[id] : id == 200 ? "GigaDevice" : "Unknown",
              id,
 
              nand->flash_size >> 11, /* Flash Size */
