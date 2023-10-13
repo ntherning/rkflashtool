@@ -10,8 +10,8 @@ ifeq ($(PKGCONFIG),1)
 CFLAGS += $(shell pkg-config --cflags libusb-1.0)
 LDFLAGS += $(shell pkg-config --libs libusb-1.0)
 else ifdef LIBUSB
-CFLAGS	+= -I$(LIBUSB)/include
-LDFLAGS	+= -L$(LIBUSB)/lib
+CFLAGS	+= -I$(LIBUSB)/include -I$(LIBUSB)/include/libusb-1.0
+LDFLAGS	+= -L$(LIBUSB)/lib -lusb-1.0
 else
 CFLAGS	+= -I/usr/include/libusb-1.0
 LDFLAGS += -lusb-1.0
