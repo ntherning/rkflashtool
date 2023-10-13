@@ -51,7 +51,7 @@ SCRIPTS = rkunsign rkparametersblock rkmisc rkpad rkparameters
 all: $(PROGS) $(SCRIPTS)
 
 %$(BINEXT): %.c $(RESFILE)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $^ -o $@ $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 install: $(PROGS) $(SCRIPTS)
 	install -d -m 0755 $(DESTDIR)/$(PREFIX)/bin
