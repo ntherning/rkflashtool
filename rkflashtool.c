@@ -35,10 +35,9 @@
 #include <libusb.h>
 #include <time.h>
 
-/* hack to set binary mode for stdin / stdout on Windows */
 #ifdef _WIN32
 #include <fcntl.h>
-int _CRT_fmode = _O_BINARY;
+#include <io.h>
 #endif
 
 #include "version.h"
@@ -277,6 +276,16 @@ int main(int argc, char **argv) {
     uint8_t flag = 0;
     char action;
     char *partname = NULL;
+
+#ifdef _WIN32
+    /*
+        Switch stdout and stdin to binary mode to prevent newline
+        conversion when redirecting stdout/stdin to/from files.
+        See https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/setmode?view=msvc-170
+     */
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stdin), _O_BINARY);
+#endif
 
     info("rkflashtool v%d.%d\n", RKFLASHTOOL_VERSION_MAJOR,
                                  RKFLASHTOOL_VERSION_MINOR);
